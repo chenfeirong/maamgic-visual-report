@@ -1,0 +1,1147 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>视觉部阶段性工作汇报</title>
+  <style>
+    /* ─── 编辑模式 ─── */
+    body.edit-mode [contenteditable] {
+      outline: 2px dashed rgba(15,0,216,.35);
+      outline-offset: 2px;
+      border-radius: 4px;
+      cursor: text;
+      transition: background .15s, outline .15s;
+    }
+    body.edit-mode [contenteditable]:hover {
+      background: rgba(15,0,216,.06);
+    }
+    body.edit-mode [contenteditable]:focus {
+      outline: 2px solid #015cf6;
+      background: rgba(1,92,246,.07);
+    }
+    /* 编辑工具栏 */
+    #edit-toolbar {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 10000;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 24px;
+      background: #1b1d36;
+      box-shadow: 0 2px 20px rgba(0,0,0,.4);
+      transform: translateY(-100%);
+      transition: transform .3s ease;
+    }
+    #edit-toolbar.visible { transform: translateY(0); }
+    .tb-label {
+      font-family: "PingFang SC","Microsoft YaHei",sans-serif;
+      font-size: 13px;
+      color: #b1e4e3;
+      font-weight: 600;
+      letter-spacing: .5px;
+      flex-shrink: 0;
+    }
+    .tb-tip {
+      font-family: "PingFang SC","Microsoft YaHei",sans-serif;
+      font-size: 12px;
+      color: rgba(255,255,255,.5);
+    }
+    .tb-spacer { flex: 1; }
+    .tb-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-family: "PingFang SC","Microsoft YaHei",sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      padding: 7px 18px;
+      border-radius: 20px;
+      border: none;
+      cursor: pointer;
+      transition: background .2s, transform .15s;
+    }
+    .tb-btn:hover { transform: translateY(-1px); }
+    .tb-btn.save   { background: #00cb6f; color: #fff; }
+    .tb-btn.save:hover { background: #00b560; }
+    .tb-btn.exit   { background: rgba(255,255,255,.12); color: #fff; }
+    .tb-btn.exit:hover { background: rgba(255,255,255,.22); }
+    .tb-btn.print  { background: #015cf6; color: #fff; }
+    .tb-btn.print:hover { background: #0047cc; }
+    /* 编辑模式下 hero 留出工具栏空间 */
+    body.edit-mode .hero { padding-top: 112px; }
+  </style>
+  <style>
+    /* ─── 品牌色系 ─── */
+    :root {
+      --brand-blue:     #0f00d8;
+      --brand-dark:     #1b1d36;
+      --brand-navy:     #015cf6;
+      --brand-cyan:     #b1e4e3;
+      --brand-green:    #00cb6f;
+      --accent-yellow:  #ffce00;
+      --accent-orange:  #ff9fcf;
+      --accent-teal:    #55d8c5;
+      --bg-light:       #f0f6ff;
+      --bg-card:        #ffffff;
+      --text-primary:   #1b1d36;
+      --text-muted:     #5a6480;
+      --border:         #d6e4f7;
+      --gradient-hero:  linear-gradient(135deg, #1b1d36 0%, #0f00d8 60%, #015cf6 100%);
+      --gradient-card:  linear-gradient(145deg, #ffffff 0%, #f0f6ff 100%);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: "PingFang SC", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
+      background: var(--bg-light);
+      color: var(--text-primary);
+      line-height: 1.7;
+    }
+
+    /* ─── HERO HEADER ─── */
+    .hero {
+      background: var(--gradient-hero);
+      color: #fff;
+      padding: 72px 48px 56px;
+      position: relative;
+      overflow: hidden;
+    }
+    .hero::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: url("data:image/svg+xml,%3Csvg width='600' height='400' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='500' cy='80' r='260' fill='%230f00d8' opacity='.18'/%3E%3Ccircle cx='80' cy='320' r='180' fill='%23015cf6' opacity='.12'/%3E%3C/svg%3E") no-repeat center/cover;
+      pointer-events: none;
+    }
+    .hero-inner { position: relative; max-width: 960px; margin: 0 auto; }
+    .hero-label {
+      display: inline-block;
+      background: rgba(1,92,246,.35);
+      border: 1px solid rgba(177,228,227,.4);
+      color: #b1e4e3;
+      font-size: 12px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      padding: 4px 14px;
+      border-radius: 20px;
+      margin-bottom: 20px;
+    }
+    .hero h1 {
+      font-size: clamp(28px, 4vw, 48px);
+      font-weight: 700;
+      letter-spacing: 1px;
+      line-height: 1.25;
+      margin-bottom: 16px;
+    }
+    .hero h1 span { color: var(--brand-cyan); }
+    .hero-sub {
+      font-size: 16px;
+      color: rgba(255,255,255,.72);
+      max-width: 560px;
+    }
+    .hero-meta {
+      margin-top: 36px;
+      display: flex;
+      gap: 32px;
+      flex-wrap: wrap;
+    }
+    .hero-meta-item { display: flex; flex-direction: column; gap: 4px; }
+    .hero-meta-item .label { font-size: 11px; color: rgba(255,255,255,.5); letter-spacing: 1px; text-transform: uppercase; }
+    .hero-meta-item .value { font-size: 15px; font-weight: 600; color: #fff; }
+
+    /* ─── PROGRESS DOTS ─── */
+    .progress-bar {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      padding: 24px 0 8px;
+      background: var(--brand-dark);
+    }
+    .progress-bar a {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: rgba(255,255,255,.25);
+      transition: all .3s;
+      text-decoration: none;
+    }
+    .progress-bar a:hover,
+    .progress-bar a.active { background: var(--brand-cyan); transform: scale(1.3); }
+
+    /* ─── MAIN LAYOUT ─── */
+    main { max-width: 1080px; margin: 0 auto; padding: 56px 24px 80px; }
+
+    /* ─── SECTION WRAPPER ─── */
+    .section {
+      margin-bottom: 64px;
+      scroll-margin-top: 80px;
+    }
+
+    /* ─── SECTION TITLE ─── */
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 32px;
+    }
+    .section-number {
+      width: 48px; height: 48px;
+      background: var(--brand-blue);
+      color: #fff;
+      font-size: 20px;
+      font-weight: 800;
+      border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      box-shadow: 0 4px 18px rgba(15,0,216,.28);
+    }
+    .section-title-wrap {}
+    .section-title-wrap h2 {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--brand-dark);
+      line-height: 1.3;
+    }
+    .section-title-wrap .subtitle {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+    .divider {
+      flex: 1;
+      height: 1px;
+      background: linear-gradient(90deg, var(--border), transparent);
+      margin-left: 8px;
+    }
+
+    /* ─── CARD BASE ─── */
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 28px 32px;
+      transition: box-shadow .25s, transform .25s;
+    }
+    .card:hover {
+      box-shadow: 0 8px 32px rgba(15,0,216,.1);
+      transform: translateY(-2px);
+    }
+
+    /* ─── UPGRADE GRID (Section 1) ─── */
+    .upgrade-grid {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      gap: 16px;
+      align-items: center;
+      margin-bottom: 24px;
+    }
+    .upgrade-arrow {
+      display: flex; flex-direction: column; align-items: center; gap: 6px;
+      color: var(--brand-blue);
+    }
+    .upgrade-arrow svg { width: 36px; height: 36px; }
+    .upgrade-arrow span { font-size: 11px; color: var(--text-muted); white-space: nowrap; }
+
+    .phase-card { border-radius: 16px; padding: 24px 28px; border: 1px solid transparent; }
+    .phase-card.old {
+      background: linear-gradient(135deg, #f5f5f8 0%, #ececf3 100%);
+      border-color: #d8d8e8;
+    }
+    .phase-card.new {
+      background: linear-gradient(135deg, #e8f0ff 0%, #dbeeff 100%);
+      border-color: #aac6f5;
+    }
+    .phase-tag {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      padding: 3px 10px;
+      border-radius: 8px;
+      margin-bottom: 14px;
+    }
+    .phase-card.old .phase-tag { background: #e0dff0; color: #7070a0; }
+    .phase-card.new .phase-tag { background: #c0d8ff; color: var(--brand-navy); }
+    .phase-card h3 { font-size: 16px; font-weight: 700; margin-bottom: 12px; }
+    .phase-card.old h3 { color: #7070a0; }
+    .phase-card.new h3 { color: var(--brand-navy); }
+    .phase-list { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+    .phase-list li {
+      font-size: 14px;
+      color: var(--text-primary);
+      padding-left: 18px;
+      position: relative;
+      line-height: 1.6;
+    }
+    .phase-list li::before {
+      content: "·";
+      position: absolute; left: 0;
+      font-size: 20px; line-height: 1.2;
+    }
+    .phase-card.old .phase-list li::before { color: #b0b0c8; }
+    .phase-card.new .phase-list li::before { color: var(--brand-navy); }
+
+    /* ─── VALUE TAGS ─── */
+    .value-row {
+      display: flex; flex-wrap: wrap; gap: 10px; margin-top: 20px;
+    }
+    .value-tag {
+      display: flex; align-items: center; gap: 8px;
+      background: linear-gradient(90deg, #e8f0ff, #f0faff);
+      border: 1px solid #bbd6ff;
+      border-radius: 24px;
+      padding: 8px 18px;
+      font-size: 13.5px;
+      color: var(--brand-dark);
+      font-weight: 500;
+    }
+    .value-tag .check {
+      width: 18px; height: 18px;
+      background: var(--brand-green);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .value-tag .check svg { width: 10px; height: 10px; }
+
+    /* ─── FLOW CHAIN (Section 2) ─── */
+    .flow-chain {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0;
+      margin-bottom: 28px;
+      background: linear-gradient(90deg, #1b1d36, #0f00d8 70%, #015cf6);
+      border-radius: 16px;
+      overflow: hidden;
+      padding: 2px;
+    }
+    .flow-chain-inner {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0;
+      width: 100%;
+      background: transparent;
+    }
+    .flow-step {
+      flex: 1;
+      min-width: 100px;
+      padding: 18px 14px;
+      text-align: center;
+      position: relative;
+      background: rgba(255,255,255,.04);
+      transition: background .2s;
+    }
+    .flow-step:hover { background: rgba(255,255,255,.1); }
+    .flow-step:not(:last-child)::after {
+      content: "→";
+      position: absolute;
+      right: -6px; top: 50%; transform: translateY(-50%);
+      color: rgba(177,228,227,.6);
+      font-size: 16px;
+      z-index: 1;
+    }
+    .flow-step-num {
+      font-size: 10px;
+      color: var(--brand-cyan);
+      letter-spacing: 1px;
+      margin-bottom: 6px;
+      opacity: .8;
+    }
+    .flow-step-text {
+      font-size: 12.5px;
+      color: #fff;
+      font-weight: 500;
+      line-height: 1.4;
+    }
+
+    .change-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .change-item {
+      background: var(--gradient-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px 20px 16px;
+    }
+    .change-item .ci-icon {
+      font-size: 26px;
+      margin-bottom: 10px;
+    }
+    .change-item .ci-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--brand-dark);
+      margin-bottom: 6px;
+    }
+    .change-item .ci-desc {
+      font-size: 13px;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+
+    .result-banner {
+      background: linear-gradient(90deg, var(--brand-dark), var(--brand-blue));
+      color: #fff;
+      border-radius: 12px;
+      padding: 18px 28px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .result-banner .rb-label {
+      font-size: 11px;
+      letter-spacing: 2px;
+      color: var(--brand-cyan);
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+    .result-banner .rb-text { font-size: 15px; font-weight: 600; }
+
+    /* ─── PILLARS (Section 3) ─── */
+    .pillars-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .pillar {
+      border-radius: 14px;
+      padding: 24px 20px;
+      text-align: center;
+      border: 1px solid var(--border);
+      background: var(--gradient-card);
+      transition: box-shadow .25s, transform .25s;
+    }
+    .pillar:hover { box-shadow: 0 6px 24px rgba(15,0,216,.12); transform: translateY(-3px); }
+    .pillar-icon { font-size: 32px; margin-bottom: 12px; }
+    .pillar-title { font-size: 14px; font-weight: 700; color: var(--brand-dark); margin-bottom: 6px; }
+    .pillar-desc { font-size: 12.5px; color: var(--text-muted); line-height: 1.6; }
+
+    .impact-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 12px;
+    }
+    .impact-item {
+      background: linear-gradient(135deg, #e8f0ff, #dbeeff);
+      border: 1px solid #b8d0f8;
+      border-radius: 12px;
+      padding: 16px 18px;
+    }
+    .impact-item .ii-kpi {
+      font-size: 11px;
+      color: var(--brand-navy);
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+    .impact-item .ii-desc { font-size: 13px; color: var(--text-primary); line-height: 1.5; }
+
+    /* ─── AI (Section 4) ─── */
+    .ai-case {
+      background: linear-gradient(135deg, #1b1d36 0%, #0f00d8 100%);
+      border-radius: 16px;
+      padding: 28px 32px;
+      color: #fff;
+      margin-bottom: 24px;
+      position: relative;
+      overflow: hidden;
+    }
+    .ai-case::after {
+      content: "AI";
+      position: absolute;
+      right: 24px; top: 50%; transform: translateY(-50%);
+      font-size: 120px;
+      font-weight: 900;
+      color: rgba(255,255,255,.04);
+      pointer-events: none;
+    }
+    .ai-case-label {
+      font-size: 11px;
+      color: var(--brand-cyan);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+    .ai-case h3 { font-size: 18px; font-weight: 700; margin-bottom: 14px; }
+    .ai-bullets { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+    .ai-bullets li {
+      font-size: 14px;
+      color: rgba(255,255,255,.85);
+      padding-left: 20px;
+      position: relative;
+    }
+    .ai-bullets li::before {
+      content: "▸";
+      position: absolute; left: 0;
+      color: var(--brand-cyan);
+    }
+
+    .sop-steps {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+    .sop-step {
+      display: flex; align-items: flex-start; gap: 16px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px 20px;
+    }
+    .sop-step-num {
+      width: 32px; height: 32px;
+      background: var(--brand-blue);
+      color: #fff;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 800;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .sop-step-body {}
+    .sop-step-body .st { font-size: 14px; font-weight: 700; color: var(--brand-dark); margin-bottom: 3px; }
+    .sop-step-body .sd { font-size: 13px; color: var(--text-muted); line-height: 1.5; }
+
+    /* ─── ATTACHMENTS (Section 5) ─── */
+    .attach-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 16px;
+    }
+    .attach-card {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 22px 20px;
+      text-decoration: none;
+      color: inherit;
+      transition: box-shadow .25s, transform .25s, border-color .25s;
+      cursor: pointer;
+    }
+    .attach-card:hover {
+      box-shadow: 0 8px 28px rgba(15,0,216,.12);
+      transform: translateY(-3px);
+      border-color: #aac6f5;
+    }
+    .attach-icon {
+      width: 44px; height: 44px;
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px;
+      flex-shrink: 0;
+    }
+    .attach-icon.pdf  { background: #fff0f0; }
+    .attach-icon.docx { background: #f0f4ff; }
+    .attach-icon.jpg  { background: #f0fff8; }
+    .attach-name {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--brand-dark);
+      line-height: 1.4;
+      flex: 1;
+    }
+    .attach-type {
+      font-size: 11px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .attach-open-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--brand-navy);
+      background: #e8f0ff;
+      border: none;
+      border-radius: 20px;
+      padding: 6px 14px;
+      cursor: pointer;
+      transition: background .2s;
+      text-decoration: none;
+    }
+    .attach-open-btn:hover { background: #c8dcff; }
+
+    /* ─── MODAL overlay for preview ─── */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(20,20,40,.82);
+      z-index: 9999;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    .modal-overlay.active { display: flex; }
+    .modal-box {
+      background: #fff;
+      border-radius: 16px;
+      overflow: hidden;
+      width: 100%;
+      max-width: 960px;
+      max-height: 92vh;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 24px 80px rgba(0,0,0,.4);
+    }
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 24px;
+      border-bottom: 1px solid var(--border);
+      background: var(--brand-dark);
+      color: #fff;
+    }
+    .modal-header .modal-title { font-size: 15px; font-weight: 600; }
+    .modal-close {
+      width: 32px; height: 32px;
+      background: rgba(255,255,255,.12);
+      border: none;
+      border-radius: 8px;
+      color: #fff;
+      font-size: 18px;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: background .2s;
+    }
+    .modal-close:hover { background: rgba(255,255,255,.24); }
+    .modal-body { flex: 1; overflow: auto; }
+    .modal-body iframe { width: 100%; height: 78vh; border: none; display: block; }
+    .modal-body img { max-width: 100%; display: block; margin: 0 auto; padding: 16px; }
+
+    /* ─── FOOTER ─── */
+    footer {
+      background: var(--brand-dark);
+      color: rgba(255,255,255,.55);
+      text-align: center;
+      padding: 28px 24px;
+      font-size: 13px;
+    }
+    footer strong { color: var(--brand-cyan); }
+
+    /* ─── RESPONSIVE ─── */
+    @media (max-width: 700px) {
+      .hero { padding: 48px 24px 40px; }
+      .upgrade-grid { grid-template-columns: 1fr; }
+      .upgrade-arrow { flex-direction: row; }
+      .flow-step:not(:last-child)::after { display: none; }
+      main { padding: 32px 16px 60px; }
+    }
+  </style>
+</head>
+<body class="edit-mode" style="">
+
+<!-- ══════════════ HERO ══════════════ -->
+<header class="hero">
+  <div class="hero-inner">
+    <div class="hero-label">MAAMGIC · Visual Team</div>
+    <h1 spellcheck="false">视觉部<span>阶段性</span>工作汇报</h1>
+    <p class="hero-sub" spellcheck="false">模式升级 · 流程闭环 · 核心业务支撑 · AI 能力落地</p>
+    <div class="hero-meta">
+      <div class="hero-meta-item">
+        <span class="label">Department</span>
+        <span class="value" spellcheck="false">视觉设计部</span>
+      </div>
+      <div class="hero-meta-item">
+        <span class="label">Period</span>
+        <span class="value" spellcheck="false">2026 · Q2</span>
+      </div>
+      <div class="hero-meta-item">
+        <span class="label">Focus</span>
+        <span class="value" spellcheck="false">4 大专题</span>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- ══════════════ NAV ══════════════ -->
+<nav class="progress-bar">
+  <a href="#s1" title="模式升级" class=""></a>
+  <a href="#s2" title="流程闭环" class=""></a>
+  <a href="#s3" title="核心业务" class=""></a>
+  <a href="#s4" title="AI 能力" class=""></a>
+  <a href="#s5" title="附件" class="active"></a>
+</nav>
+
+<!-- ══════════════ MAIN ══════════════ -->
+<main>
+
+  <!-- ── SECTION 1 ── -->
+  <section class="section" id="s1">
+    <div class="section-header">
+      <div class="section-number">01</div>
+      <div class="section-title-wrap">
+        <h2 spellcheck="false">TK内容协作模式升级 ：「被动执行 → 自主创意」<br></h2>
+        <div class="subtitle" spellcheck="false">Video Team · Creative Transformation</div>
+      </div>
+      <div class="divider"></div>
+    </div>
+
+    <div class="upgrade-grid">
+      <!-- 旧模式 -->
+      <div class="phase-card old">
+        <div class="phase-tag">过去 · 旧模式</div>
+        <h3 spellcheck="false">100%被动接需阶段</h3>
+        <ul class="phase-list">
+          <li spellcheck="false">纯承接运营需求，脚本、方向全部被动接收</li>
+          <li spellcheck="false">内容同质化高、无自主迭代</li>
+          <li spellcheck="false">依赖运营输出思路</li>
+          <li spellcheck="false">剪辑仅作为执行工具岗，无创意沉淀</li>
+        </ul>
+      </div>
+
+      <!-- 箭头 -->
+      <div class="upgrade-arrow">
+        <svg viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="18" cy="18" r="17" fill="#e8f0ff" stroke="#aac6f5"></circle>
+          <path d="M12 18h12M20 14l4 4-4 4" stroke="#0f00d8" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"></path>
+        </svg>
+        <span>已完成升级</span>
+      </div>
+
+      <!-- 新模式 -->
+      <div class="phase-card new">
+        <div class="phase-tag">现在 · 已完成升级</div>
+        <h3 spellcheck="false">50%自主创意阶段（赛马机制，试跑到7月份看数据效果）</h3>
+        <ul class="phase-list">
+          <li spellcheck="false">保留小杨自制类脚本需求承接，另50%内容自主发挥</li>
+          <li spellcheck="false">从「接需求剪辑」→「创意驱动产出」</li>
+          <li spellcheck="false"><ul class="phase-list" style="font-size: medium; background-color: rgb(240, 246, 255);"><li spellcheck="false" style="color: rgb(27, 29, 54); outline: rgb(1, 92, 246) solid 2px; background: rgba(1, 92, 246, 0.07);">视频组自主挖掘热点、自主选题、自主写脚本、自主成片</li></ul></li>
+          <li spellcheck="false">爆款率自主可控</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card">
+      <div style="font-size:13px;font-weight:700;color:var(--text-muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:14px;">业务价值</div>
+      <div class="value-row">
+        <div class="value-tag" spellcheck="false">
+          <div class="check">
+            <svg viewBox="0 0 10 10" fill="none"><path d="M2 5l2.5 2.5L8 3" stroke="#fff" stroke-width="1.6" stroke-linecap="round"></path></svg>
+          </div>
+          解放跨部门反复沟通成本
+        </div>
+        <div class="value-tag" spellcheck="false">
+          <div class="check">
+            <svg viewBox="0 0 10 10" fill="none"><path d="M2 5l2.5 2.5L8 3" stroke="#fff" stroke-width="1.6" stroke-linecap="round"></path></svg>
+          </div>
+          沉淀团队自有创意库·可复制爆款模型
+        </div>
+        <div class="value-tag" spellcheck="false">
+          <div class="check">
+            <svg viewBox="0 0 10 10" fill="none"><path d="M2 5l2.5 2.5L8 3" stroke="#fff" stroke-width="1.6" stroke-linecap="round"></path></svg>
+          </div>
+          剪辑团队技能升级（技术 → 创意 + 视觉）
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── SECTION 2 ── -->
+  <section class="section" id="s2">
+    <div class="section-header">
+      <div class="section-number">02</div>
+      <div class="section-title-wrap">
+        <h2 spellcheck="false">品宣自制类内容：社媒短视频「自制跑通」</h2>
+        <div class="subtitle" spellcheck="false">Social Media · End-to-End Pipeline</div>
+      </div>
+      <div class="divider"></div>
+    </div>
+
+    <!-- 完整链路 -->
+    <div style="font-size:13px;font-weight:700;color:var(--text-muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:14px;">完整链路</div>
+    <div class="flow-chain">
+      <div class="flow-chain-inner">
+        <div class="flow-step"><div class="flow-step-num">STEP 1</div><div class="flow-step-text" spellcheck="false">周度创意<br>热点搜集</div></div>
+        <div class="flow-step"><div class="flow-step-num">STEP 2</div><div class="flow-step-text" spellcheck="false">方向筛选</div></div>
+        <div class="flow-step"><div class="flow-step-num">STEP 3</div><div class="flow-step-text" spellcheck="false">脚本产出</div></div>
+        <div class="flow-step"><div class="flow-step-num">STEP 4</div><div class="flow-step-text" spellcheck="false">拍摄剪辑</div></div>
+        <div class="flow-step"><div class="flow-step-num">STEP 5</div><div class="flow-step-text" spellcheck="false">统一视觉<br>输出</div></div>
+        <div class="flow-step"><div class="flow-step-num">STEP 6</div><div class="flow-step-text" spellcheck="false">上线分发</div></div>
+        <div class="flow-step"><div class="flow-step-num">STEP 7</div><div class="flow-step-text" spellcheck="false">数据复盘<br>迭代</div></div>
+      </div>
+    </div>
+
+    <!-- 核心改变 -->
+    <div style="font-size:13px;font-weight:700;color:var(--text-muted);letter-spacing:1px;text-transform:uppercase;margin:24px 0 14px;">核心改变</div>
+    <div class="change-grid">
+      <div class="change-item">
+        <div class="ci-icon">🔗</div>
+        <div class="ci-title" spellcheck="false">拉通新媒体部门，完成创意自制类内容协作</div>
+        <div class="ci-desc" spellcheck="false">周度热点创意搜集-脑爆共创-提前规划自制内容</div>
+      </div>
+      <div class="change-item">
+        <div class="ci-icon">🎨</div>
+        <div class="ci-title" spellcheck="false">内部跑通从创意挖掘到落地流程</div>
+        <div class="ci-desc" spellcheck="false">之前有创意但无法落地，新人具备拍摄落地能力</div>
+      </div>
+      <div class="change-item">
+        <div class="ci-icon">⚡</div>
+        <div class="ci-title" spellcheck="false">热点响应速度提升</div>
+        <div class="ci-desc" spellcheck="false">快速跟进平台趋势，从发现热点到上线内容大幅提速</div>
+      </div>
+    </div>
+
+    <div class="result-banner">
+      <div>
+        <div class="rb-label">阶段结果</div>
+        <div class="rb-text" spellcheck="false">社媒内容进入：<strong style="color:#b1e4e3;">标准化</strong> · <strong style="color:#00cb6f;">自制化</strong> · <strong style="color:#ffce00;">快反化</strong> 新阶段</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── SECTION 3 ── -->
+  <section class="section" id="s3">
+    <div class="section-header">
+      <div class="section-number">03</div>
+      <div class="section-title-wrap">
+        <h2 spellcheck="false">核心业务支撑：欧洲站主图 &amp; SBV 视频专项保障</h2>
+        <div class="subtitle" spellcheck="false">Europe Station · Product Video · Conversion</div>
+      </div>
+      <div class="divider"></div>
+    </div>
+
+    <div class="pillars-grid">
+      <div class="pillar">
+        <div class="pillar-icon">🎬</div>
+        <div class="pillar-title" spellcheck="false">视频策划→拍摄落地</div>
+        <div class="pillar-desc" spellcheck="false">欧站本土化视频探索，赋能创意</div>
+      </div>
+      <div class="pillar">
+        <div class="pillar-icon">✂️</div>
+        <div class="pillar-title" spellcheck="false">剪辑成片→交付</div>
+        <div class="pillar-desc" spellcheck="false">独立资源支撑，完整闭环贯穿全链路</div>
+      </div>
+      <div class="pillar">
+        <div class="pillar-icon">📊</div>
+        <div class="pillar-title" spellcheck="false">数据测试→优化</div>
+        <div class="pillar-desc" spellcheck="false">SBV 广告视频定制拍摄持续迭代优化</div>
+      </div>
+      <div class="pillar">
+        <div class="pillar-icon">🚀</div>
+        <div class="pillar-title" spellcheck="false">新品/大促/主推品</div>
+        <div class="pillar-desc" spellcheck="false">视频产能兜底，保障重要节点 100% 覆盖</div>
+      </div>
+    </div>
+
+    <div style="font-size:13px;font-weight:700;color:var(--text-muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:14px;">业务意义</div>
+    <div class="impact-row">
+      <div class="impact-item">
+        <div class="ii-kpi">🛒 点击率</div>
+        <div class="ii-desc" spellcheck="false">适配欧洲站用户审美与亚马逊流量权重，提升广告点击率</div>
+      </div>
+      <div class="impact-item">
+        <div class="ii-kpi">💰 广告转化</div>
+        <div class="ii-desc" spellcheck="false">直接服务广告转化率提升，降低 ACoS，提升 ROAS</div>
+      </div>
+      <div class="impact-item">
+        <div class="ii-kpi">📈 单品权重</div>
+        <div class="ii-desc" spellcheck="false">视频内容加持单品权重，强化自然流量获取能力</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── SECTION 4 ── -->
+  <section class="section" id="s4">
+    <div class="section-header">
+      <div class="section-number">04</div>
+      <div class="section-title-wrap">
+        <h2 spellcheck="false">AI 初步落地：搭建营销视觉 AI 工作流</h2>
+        <div class="subtitle" spellcheck="false">AI Workflow · Creative Intelligence · Digital Transformation</div>
+      </div>
+      <div class="divider"></div>
+    </div>
+
+    <div class="ai-case">
+      <div class="ai-case-label">当前案例 · PD 大促营销</div>
+      <h3 spellcheck="false">AI 视觉方向提案 → AI 画面产出 → AI 字体设计 → AI初稿生成 →&nbsp; 合成最终海报<br></h3>
+      <ul class="ai-bullets">
+        <li spellcheck="false">以正在进行的 PD 大促营销为案例，跑通营销视觉 AI 完整流程</li>
+        <li spellcheck="false">实现多版本创意快速试错、低成本产出备选方案</li>
+        <li spellcheck="false">当前创意和生图耗时，仍需持续提升内容产出效率</li>
+      </ul>
+    </div>
+
+    <div style="font-size:13px;font-weight:700;color:var(--text-muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:16px;">下一步核心动作 · 沉淀标准化 AI 工作流 SOP</div>
+    <div class="sop-steps">
+      <div class="sop-step">
+        <div class="sop-step-num">01</div>
+        <div class="sop-step-body">
+          <div class="st" spellcheck="false">固化 Prompt 模板 &amp; 生成逻辑</div>
+          <div class="sd" spellcheck="false">固定 Prompt 模板、生成逻辑、筛选标准、成片适配规则</div>
+        </div>
+      </div>
+      <div class="sop-step">
+        <div class="sop-step-num">02</div>
+        <div class="sop-step-body">
+          <div class="st" spellcheck="false">输出团队通用 AI 创作工作流</div>
+          <div class="sd" spellcheck="false">全员统一复用，实现「AI 快速出创意 + 人工合成提质」高效生产模式</div>
+        </div>
+      </div>
+      <div class="sop-step">
+        <div class="sop-step-num">03</div>
+        <div class="sop-step-body">
+          <div class="st" spellcheck="false">数据验证 → 规模复制</div>
+          <div class="sd" spellcheck="false">待当前链路验证跑通、数据跑稳后，固化成可直接复用的团队营销视觉 AI 工作流</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div style="font-size:13px;font-weight:700;color:var(--text-muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:14px;">赋能价值</div>
+      <div class="value-row">
+        <div class="value-tag" spellcheck="false">
+          <div class="check">
+            <svg viewBox="0 0 10 10" fill="none"><path d="M2 5l2.5 2.5L8 3" stroke="#fff" stroke-width="1.6" stroke-linecap="round"></path></svg>
+          </div>
+          降低团队创意门槛，新人快速上手出优质方案
+        </div>
+        <div class="value-tag" spellcheck="false">
+          <div class="check">
+            <svg viewBox="0 0 10 10" fill="none"><path d="M2 5l2.5 2.5L8 3" stroke="#fff" stroke-width="1.6" stroke-linecap="round"></path></svg>
+          </div>
+          提升整体产能上限，实现多创意并行测试
+        </div>
+        <div class="value-tag" spellcheck="false">
+          <div class="check">
+            <svg viewBox="0 0 10 10" fill="none"><path d="M2 5l2.5 2.5L8 3" stroke="#fff" stroke-width="1.6" stroke-linecap="round"></path></svg>
+          </div>
+          建立视觉部 AI 数字化生产体系，完成团队智能化转型落地
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── SECTION 5 : ATTACHMENTS ── -->
+  <section class="section" id="s5">
+    <div class="section-header">
+      <div class="section-number" style="background:linear-gradient(135deg,#015cf6,#00cb6f);">📎</div>
+      <div class="section-title-wrap">
+        <h2>附件文件</h2>
+        <div class="subtitle">Visual Department · Work Documents</div>
+      </div>
+      <div class="divider"></div>
+    </div>
+
+    <div style="font-size:13px;font-weight:700;color:var(--text-muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:18px;">全部附件已上传至百度网盘 · 点击按钮一键跳转下载</div>
+
+    <!-- 网盘主按钮 -->
+    <a href="https://pan.baidu.com/s/1A6wudTlOhhZ-Qt-yXDm4_g?pwd=x2hu"
+       target="_blank" rel="noopener"
+       style="display:flex;align-items:center;gap:18px;
+              background:linear-gradient(135deg,#1b1d36 0%,#0f00d8 100%);
+              border-radius:16px;padding:24px 32px;margin-bottom:28px;
+              text-decoration:none;color:#fff;transition:box-shadow .25s,transform .25s;
+              box-shadow:0 4px 24px rgba(15,0,216,.15);"
+       onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 8px 32px rgba(15,0,216,.25)'"
+       onmouseout="this.style.transform='';this.style.boxShadow='0 4px 24px rgba(15,0,216,.15)'">
+      <div style="font-size:42px;flex-shrink:0;">📦</div>
+      <div style="flex:1;">
+        <div style="font-size:16px;font-weight:700;margin-bottom:4px;">点击跳转百度网盘下载全部附件</div>
+        <div style="font-size:13px;color:rgba(255,255,255,.6);line-height:1.6;">
+          包含：PDF 拍摄方案 · PDF 协作流程 · DOCX 策划文档 · JPG 策划图<br>
+          提取码：<strong style="color:#b1e4e3;background:rgba(177,228,227,.15);padding:1px 8px;border-radius:4px;">x2hu</strong>
+        </div>
+      </div>
+      <div style="flex-shrink:0;background:rgba(255,255,255,.12);border-radius:24px;padding:8px 20px;font-size:13px;font-weight:600;">打开网盘 →</div>
+    </a>
+
+    <!-- 文件清单 -->
+    <div style="font-size:13px;font-weight:700;color:var(--text-muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:14px;">附件清单（共 6 个文件）</div>
+    <div class="attach-grid">
+
+      <div class="attach-card" onclick="window.open('https://pan.baidu.com/s/1A6wudTlOhhZ-Qt-yXDm4_g?pwd=x2hu','_blank')">
+        <div class="attach-icon pdf">📄</div>
+        <div class="attach-name">202605 欧英加产品视频（国内白棚）拍摄方案</div>
+        <div class="attach-type">PDF · 116 MB</div>
+        <span class="attach-open-btn">百度网盘下载 →</span>
+      </div>
+
+      <div class="attach-card" onclick="window.open('https://pan.baidu.com/s/1A6wudTlOhhZ-Qt-yXDm4_g?pwd=x2hu','_blank')">
+        <div class="attach-icon pdf">📄</div>
+        <div class="attach-name">视觉-新媒体协作流程</div>
+        <div class="attach-type">PDF · 202 KB</div>
+        <span class="attach-open-btn">百度网盘下载 →</span>
+      </div>
+
+      <div class="attach-card" onclick="openModal('TK周度策划.jpg','img','TK 周度策划')">
+        <div class="attach-icon jpg">🖼️</div>
+        <div class="attach-name">TK 周度策划</div>
+        <div class="attach-type">图片文件 · 在线预览</div>
+        <span class="attach-open-btn">点击预览</span>
+      </div>
+
+      <div class="attach-card" onclick="window.open('https://pan.baidu.com/s/1A6wudTlOhhZ-Qt-yXDm4_g?pwd=x2hu','_blank')">
+        <div class="attach-icon docx">📝</div>
+        <div class="attach-name">TK 周度策划（Word）</div>
+        <div class="attach-type">DOCX · 39 MB</div>
+        <span class="attach-open-btn">百度网盘下载 →</span>
+      </div>
+
+      <div class="attach-card" onclick="window.open('https://pan.baidu.com/s/1A6wudTlOhhZ-Qt-yXDm4_g?pwd=x2hu','_blank')">
+        <div class="attach-icon docx">📝</div>
+        <div class="attach-name">ins 优质创意及热点趋势</div>
+        <div class="attach-type">DOCX · 215 KB</div>
+        <span class="attach-open-btn">百度网盘下载 →</span>
+      </div>
+
+      <div class="attach-card" onclick="window.open('https://pan.baidu.com/s/1A6wudTlOhhZ-Qt-yXDm4_g?pwd=x2hu','_blank')">
+        <div class="attach-icon docx">📝</div>
+        <div class="attach-name">社媒视频拍摄</div>
+        <div class="attach-type">DOCX · 34 MB</div>
+        <span class="attach-open-btn">百度网盘下载 →</span>
+      </div>
+
+    </div>
+  </section>
+</main>
+
+<!-- ── MODAL ── -->
+<div class="modal-overlay" id="modalOverlay" onclick="closeModalOnOverlay(event)">
+  <div class="modal-box">
+    <div class="modal-header">
+      <span class="modal-title" id="modalTitle">TK 周度策划（Word）</span>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+  </div>
+</div>
+
+<!-- ── FOOTER ── -->
+<footer>
+  <strong spellcheck="false">MAAMGIC · Visual Design Department</strong> &nbsp;|&nbsp; 视觉部阶段性工作汇报 · 2026 Q2
+  &nbsp;|&nbsp;
+  <button id="footer-edit-btn" onclick="enterEditMode()" style="background: rgba(177, 228, 227, 0.2); border: 1px solid rgba(177, 228, 227, 0.4); color: rgb(177, 228, 227); padding: 4px 14px; border-radius: 16px; font-size: 12px; cursor: pointer; font-family: inherit; display: none;">✏️ 进入编辑模式</button>
+</footer>
+
+<!-- ── EDIT TOOLBAR ── -->
+
+
+<script>
+  /* ── Edit Mode ── */
+  function enterEditMode() {
+    document.body.classList.add('edit-mode');
+    document.getElementById('edit-toolbar').classList.add('visible');
+    document.getElementById('footer-edit-btn').style.display = 'none';
+
+    // 让所有文本节点可编辑
+    const targets = document.querySelectorAll(
+      'h1, h2, h3, p, li, .subtitle, .tb-tip, .hero-sub, .hero-meta-item .value, ' +
+      '.phase-card h3, .phase-list li, .value-tag, .flow-step-text, ' +
+      '.change-item .ci-title, .change-item .ci-desc, .result-banner .rb-text, ' +
+      '.pillar-title, .pillar-desc, .impact-item .ii-desc, .ai-case h3, ' +
+      '.ai-bullets li, .sop-step-body .st, .sop-step-body .sd, ' +
+      '.attach-name, footer strong'
+    );
+    targets.forEach(el => {
+      el.setAttribute('contenteditable', 'true');
+      el.setAttribute('spellcheck', 'false');
+    });
+  }
+
+  function exitEditMode() {
+    document.body.classList.remove('edit-mode');
+    document.getElementById('edit-toolbar').classList.remove('visible');
+    document.getElementById('footer-edit-btn').style.display = '';
+    document.querySelectorAll('[contenteditable]').forEach(el => {
+      el.removeAttribute('contenteditable');
+    });
+  }
+
+  function saveHtml() {
+    // 序列化当前 DOM，去掉 toolbar 和 contenteditable 属性
+    const clone = document.documentElement.cloneNode(true);
+    clone.querySelectorAll('[contenteditable]').forEach(el => el.removeAttribute('contenteditable'));
+    const toolbar = clone.querySelector('#edit-toolbar');
+    if (toolbar) toolbar.remove();
+    const html = '<!DOCTYPE html>\n' + clone.outerHTML;
+    const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = '视觉部阶段性工作汇报.html';
+    a.click();
+    URL.revokeObjectURL(a.href);
+    // 提示
+    const btn = document.querySelector('.tb-btn.save');
+    btn.textContent = '✅ 已保存到下载';
+    setTimeout(() => { btn.textContent = '💾 保存修改'; }, 2500);
+  }
+
+  /* ── Modal logic ── */
+  function openModal(filename, type, title) {
+    document.getElementById('modalTitle').textContent = title;
+    const body = document.getElementById('modalBody');
+    body.innerHTML = '';
+
+    if (type === 'pdf') {
+      const iframe = document.createElement('iframe');
+      iframe.src = filename;
+      body.appendChild(iframe);
+    } else if (type === 'img') {
+      const img = document.createElement('img');
+      img.src = filename;
+      img.alt = title;
+      body.appendChild(img);
+    } else {
+      // office - use Google Docs viewer as fallback, or show download prompt
+      const wrap = document.createElement('div');
+      wrap.style.cssText = 'padding:40px;text-align:center;';
+      wrap.innerHTML = `
+        <div style="font-size:48px;margin-bottom:16px;">📝</div>
+        <div style="font-size:16px;font-weight:700;color:#1b1d36;margin-bottom:8px;">${title}</div>
+        <div style="font-size:13px;color:#7a7fa0;margin-bottom:24px;">Word 文档支持下载后在本地打开查阅</div>
+        <a href="${filename}" download style="display:inline-flex;align-items:center;gap:8px;background:#0f00d8;color:#fff;padding:12px 28px;border-radius:24px;text-decoration:none;font-weight:600;font-size:14px;">
+          ⬇ 下载文档
+        </a>`;
+      body.appendChild(wrap);
+    }
+
+    document.getElementById('modalOverlay').classList.add('active');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeModal() {
+    document.getElementById('modalOverlay').classList.remove('active');
+    document.getElementById('modalBody').innerHTML = '';
+    document.body.style.overflow = '';
+  }
+
+  function closeModalOnOverlay(e) {
+    if (e.target === document.getElementById('modalOverlay')) closeModal();
+  }
+
+  /* ── Nav active highlight on scroll ── */
+  const sections = document.querySelectorAll('.section');
+  const navDots  = document.querySelectorAll('.progress-bar a');
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        navDots.forEach(d => d.classList.remove('active'));
+        const id = entry.target.id;
+        const idx = ['s1','s2','s3','s4','s5'].indexOf(id);
+        if (idx >= 0) navDots[idx].classList.add('active');
+      }
+    });
+  }, { threshold: 0.4 });
+  sections.forEach(s => observer.observe(s));
+
+  /* ESC to close modal */
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+</script>
+
+
+</body></html>
